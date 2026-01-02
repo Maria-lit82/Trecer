@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserProgress, Category } from './types';
 import { INITIAL_PRACTICES, CYCLE_START_DATE } from './constants';
-import { getMotivationalPhrase } from './services/geminiService';
-import PracticeCard from './components/PracticeCard';
+import { getMotivationalPhrase } from './geminiService';
+import PracticeCard from './PracticeCard';
 
 declare const confetti: any;
 
@@ -25,19 +26,22 @@ const App: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+  // Используем локальную дату без смещения часовых поясов
+  const today = new Date().toLocaleDateString('en-CA'); 
 
   useEffect(() => {
     localStorage.setItem('zen_tracker_v1', JSON.stringify(progress));
   }, [progress]);
 
   const triggerCelebration = useCallback(() => {
-    confetti({ 
-      particleCount: 100, 
-      spread: 70, 
-      origin: { y: 0.6 },
-      colors: ['#10b981', '#3b82f6', '#f59e0b']
-    });
+    if (typeof confetti === 'function') {
+      confetti({ 
+        particleCount: 100, 
+        spread: 70, 
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#3b82f6', '#f59e0b']
+      });
+    }
   }, []);
 
   const handleToggle = async (id: string) => {
@@ -64,12 +68,10 @@ const App: React.FC = () => {
       const phrase = await getMotivationalPhrase(practice.name);
       setMotivation(phrase);
       setLoading(false);
-      // Продлеваем показ если фраза длинная
-      setTimeout(() => setShowToast(false), 6000);
+      setTimeout(() => setShowToast(false), 5000);
     }
   };
 
-  // Группировка практик для удобства
   const groupedPractices = useMemo(() => {
     const groups: Partial<Record<Category, typeof INITIAL_PRACTICES>> = {};
     progress.practices.forEach(p => {
@@ -85,7 +87,7 @@ const App: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Zen Tracker</h1>
         <div className="flex items-center justify-center gap-2 mt-1">
           <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Период 1: Зима 25/26</p>
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Период: Зима 25/26</p>
         </div>
       </header>
 
@@ -109,13 +111,10 @@ const App: React.FC = () => {
         ))}
       </main>
 
-      {/* Мотивационное окно */}
       {showToast && (
         <div className="fixed inset-x-4 bottom-8 flex justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-md p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white flex flex-col items-center text-center gap-2 animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500 max-w-sm w-full">
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl mb-1">
-              {loading ? '⏳' : '✨'}
-            </div>
+          <div className="bg-white/95 backdrop-blur-md p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white flex flex-col items-center text-center gap-2 animate-in fade-in zoom-in slide-in-from-bottom-10 duration-500 max-w-sm w-full">
+            <div className="text-2xl mb-1">{loading ? '⏳' : '✨'}</div>
             <p className="text-base font-semibold text-slate-800 leading-snug">
               {loading ? 'Настраиваемся на успех...' : motivation}
             </p>
